@@ -23,8 +23,8 @@ class _RoomsPageState extends State<RoomsPage> {
 
   @override
   void initState() {
-    initializeFlutterFire();
     super.initState();
+    initializeFlutterFire();
   }
 
   void initializeFlutterFire() async {
@@ -54,7 +54,7 @@ class _RoomsPageState extends State<RoomsPage> {
     if (room.type == types.RoomType.direct) {
       try {
         final otherUser = room.users.firstWhere(
-          (u) => u.id != _user!.uid,
+              (u) => u.id != _user!.uid,
         );
 
         color = getUserAvatarNameColor(otherUser);
@@ -66,126 +66,151 @@ class _RoomsPageState extends State<RoomsPage> {
     final hasImage = room.imageUrl != null;
     final name = room.name ?? '';
 
-    return Container(
-      margin: const EdgeInsets.only(right: 16),
-      child: CircleAvatar(
-        backgroundColor: hasImage ? Colors.transparent : color,
-        backgroundImage: hasImage ? NetworkImage(room.imageUrl!) : null,
-        radius: 20,
-        child: !hasImage
-            ? Text(
-                name.isEmpty ? '' : name[0].toUpperCase(),
-                style: const TextStyle(color: Colors.white),
-              )
-            : null,
-      ),
+    return CircleAvatar(
+      backgroundColor: hasImage ? Colors.transparent : color,
+      backgroundImage: hasImage ? NetworkImage(room.imageUrl!) : null,
+      radius: 20,
+      child: !hasImage
+          ? Text(
+        name.isEmpty ? '' : name[0].toUpperCase(),
+        style: const TextStyle(color: Colors.white),
+      )
+          : null,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     if (_error) {
-      return Container();
+      return Scaffold(
+        body: Center(child: Text('Failed to initialize Firebase')),
+      );
     }
 
     if (!_initialized) {
-      return Container();
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
-      appBar: _user != null?AppBar(
+      appBar: AppBar(
+        backgroundColor: Colors.deepPurple,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _user == null
-                ? null
-                : () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        fullscreenDialog: true,
-                        builder: (context) => const UsersPage(),
-                      ),
-                    );
-                  },
+            icon: const Icon(Icons.add, color: Colors.white),
+            onPressed: _user == null ? null : () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  fullscreenDialog: true,
+                  builder: (context) => const UsersPage(),
+                ),
+              );
+            },
           ),
         ],
         leading: IconButton(
-          icon: const Icon(Icons.logout),
+          icon: const Icon(Icons.logout, color: Colors.white),
           onPressed: _user == null ? null : logout,
         ),
-        systemOverlayStyle: SystemUiOverlayStyle.light,
-        title: const Text('Vconnect'),
-      ):null,
+        title: const Text('Vconnect', style: TextStyle(color: Colors.white)),
+      ),
       body: _user == null
           ? Container(
-              alignment: Alignment.center,
-              margin: const EdgeInsets.only(
-                bottom: 200,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Welcome to Vconnect'),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          fullscreenDialog: true,
-                          builder: (context) => const LoginPage(),
-                        ),
-                      );
-                    },
-                    child: const Text('Login'),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [Colors.tealAccent[100]!, Colors.tealAccent[700]!],
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Welcome to Vconnect',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontFamily: 'Lato',
+                shadows: [
+                  Shadow(
+                    blurRadius: 2.0,
+                    color: Colors.black45,
+                    offset: Offset(1.0, 1.0),
                   ),
                 ],
               ),
-            )
-          : StreamBuilder<List<types.Room>>(
-              stream: FirebaseChatCore.instance.rooms(),
-              initialData: const [],
-              builder: (context, snapshot) {
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Container(
-                    alignment: Alignment.center,
-                    margin: const EdgeInsets.only(
-                      bottom: 200,
-                    ),
-                    child: const Text('No rooms'),
-                  );
-                }
-
-                return ListView.builder(
-                  itemCount: snapshot.data!.length,
-                  itemBuilder: (context, index) {
-                    final room = snapshot.data![index];
-
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => ChatPage(
-                              room: room,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            _buildAvatar(room),
-                            Text(room.name ?? ''),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+            ),
+            const SizedBox(height: 20),
+            Text(
+              "Let's get connected!",
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.white70,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(height: 40),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    fullscreenDialog: true,
+                    builder: (context) => const LoginPage(),
+                  ),
                 );
               },
+              child: const Text('Log In', style: TextStyle(fontSize: 20, color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal, // Updated from primary to backgroundColor
+                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
             ),
+          ],
+        ),
+      )
+          : StreamBuilder<List<types.Room>>(
+        stream: FirebaseChatCore.instance.rooms(),
+        initialData: const [],
+        builder: (context, snapshot) {
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('No rooms available. Start by creating one!'));
+          }
+
+          return ListView.builder(
+            itemCount: snapshot.data!.length,
+            itemBuilder: (context, index) {
+              final room = snapshot.data![index];
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ChatPage(room: room),
+                    ),
+                  );
+                },
+                child: Card(
+                  elevation: 4,
+                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: ListTile(
+                    leading: _buildAvatar(room),
+                    title: Text(room.name ?? 'Unnamed room'),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
