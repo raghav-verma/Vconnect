@@ -33,6 +33,27 @@
   <link rel="manifest" href="manifest.json">
 
   <script>
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyCkbzPMtcjWQRSB5Dlad__ErWlcqNZzqog",
+    authDomain: "chat-app-final-45a00.firebaseapp.com",
+    projectId: "chat-app-final-45a00",
+    storageBucket: "chat-app-final-45a00.appspot.com",
+    messagingSenderId: "936922336672",
+    appId: "1:936922336672:web:d2e9b10551bab82e32e8c5",
+    measurementId: "G-742EPNNW60"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
     // The value below is injected by flutter build, do not touch.
     var serviceWorkerVersion = null;
   </script>

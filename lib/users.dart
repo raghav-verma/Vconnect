@@ -6,13 +6,23 @@ import 'package:flutter_firebase_chat_core/flutter_firebase_chat_core.dart';
 import 'chat.dart';
 import 'util.dart';
 
-class UsersPage extends StatelessWidget {
+class UsersPage extends StatefulWidget {
   const UsersPage({super.key});
+
+  @override
+  State<UsersPage> createState() => _UsersPageState();
+}
+
+class _UsersPageState extends State<UsersPage> {
+  bool isLoading = false;
+
 
   Widget _buildAvatar(types.User user) {
     final color = getUserAvatarNameColor(user);
     final hasImage = user.imageUrl != null;
     final name = getUserName(user);
+
+
 
     return Container(
       margin: const EdgeInsets.only(right: 16),
@@ -30,25 +40,46 @@ class UsersPage extends StatelessWidget {
     );
   }
 
-  void _handlePressed(types.User otherUser, BuildContext context) async {
-    final navigator = Navigator.of(context);
-    final room = await FirebaseChatCore.instance.createRoom(otherUser);
+  Future<void> _handlePressed(types.User otherUser, BuildContext context) async {
+    if (!isLoading) {
+      isLoading = true;
+      showLoaderDialog(context);
+      final navigator = Navigator.of(context);
+      await FirebaseChatCore.instance.createRoom(otherUser);
+      final room = await FirebaseChatCore.instance.createRoom(otherUser);
 
-    navigator.pop();
-    await navigator.push(
-      MaterialPageRoute(
-        builder: (context) => ChatPage(
-          room: room,
+      navigator.pop();
+      print(room.name);
+      print(otherUser.firstName);
+      await navigator.push(
+        MaterialPageRoute(
+          builder: (context) =>
+              ChatPage(
+                room: room,
+
+                userName: otherUser.firstName ?? '',
+                imageUrl: otherUser.imageUrl ?? '',
+              ),
         ),
-      ),
-    );
+      );
+      isLoading = false;
+      dismissLoaderDialog(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
+          backgroundColor: Color(0xFF0D1B2A),
+          centerTitle: true,
           systemOverlayStyle: SystemUiOverlayStyle.light,
-          title: const Text('Users'),
+          title: const Text('Contacts', style: TextStyle(color: Colors.white),),
+          leading:    IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+            onPressed:  () {
+              Navigator.of(context).pop();
+            },
+          ),
         ),
         body: StreamBuilder<List<types.User>>(
           stream: FirebaseChatCore.instance.users(),
@@ -70,8 +101,8 @@ class UsersPage extends StatelessWidget {
                 final user = snapshot.data![index];
 
                 return GestureDetector(
-                  onTap: () {
-                    _handlePressed(user, context);
+                  onTap: () async {
+                    await _handlePressed(user, context);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -91,4 +122,31 @@ class UsersPage extends StatelessWidget {
           },
         ),
       );
+  void showLoaderDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Dialog will not dismiss on tap outside
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 20),
+                Text("Loading Room..."),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Function to dismiss the loader dialog
+  void dismissLoaderDialog(BuildContext context) {
+    Navigator.pop(context); // Dismiss the dialog
+  }
 }
+

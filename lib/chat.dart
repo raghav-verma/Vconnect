@@ -1,7 +1,11 @@
 import 'dart:io';
 
+import 'package:Vconnect/rooms.dart';
+import 'package:Vconnect/util.dart';
+import 'package:faker/faker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
@@ -17,9 +21,13 @@ class ChatPage extends StatefulWidget {
   const ChatPage({
     super.key,
     required this.room,
+    required this.userName,
+    required this.imageUrl,
   });
 
   final types.Room room;
+  final String userName;
+  final String imageUrl;
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -31,43 +39,91 @@ class _ChatPageState extends State<ChatPage> {
   void _handleAtachmentPressed() {
     showModalBottomSheet<void>(
       context: context,
-      builder: (BuildContext context) => SafeArea(
-        child: SizedBox(
-          height: 144,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _handleImageSelection();
-                },
-                child: const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Photo'),
-                ),
+      builder: (BuildContext context) =>
+          SafeArea(
+            child: SizedBox(
+
+              child: Padding(
+                padding: const EdgeInsets.only(left: 15.0, top: 15.0, bottom: 10),
+
+                  child: Stack(
+                    children: <Widget>[
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _handleImageSelection();
+                              },
+                              child: const Align(
+                                alignment: Alignment.centerLeft,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.photo),
+                                    SizedBox(width: 4,),
+                                    Text('Gallery'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _handleCameraSelection();
+                              },
+                              child: const Align(
+                                alignment: Alignment.centerLeft,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.camera_alt_sharp),
+                                    SizedBox(width: 4,),
+                                    Text('Camera'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _handleFileSelection();
+                              },
+                              child: const Align(
+                                alignment: Alignment.centerLeft,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.picture_as_pdf),
+                                    SizedBox(width: 4,),
+                                    Text('File'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // TextButton(
+                            //   onPressed: () => Navigator.pop(context),
+                            //   child: const Align(
+                            //     alignment: Alignment.centerLeft,
+                            //     child: Row(
+                            //       children: [
+                            //         Icon(Icons.cancel, color: Colors.red),
+                            //         SizedBox(width: 4,),
+                            //         Text('Cancel', style: TextStyle(color: Colors.red)),
+                            //       ],
+                            //     ),
+                            //   ),
+                            // ),
+                          ],
+                        ),
+                      Positioned(right: 14,child: InkWell(child: Icon(Icons.cancel, color: Colors.red),
+                      onTap: ()=>Navigator.pop(context),
+                      )),
+                      // Add other widgets here to layer them in the Stack
+                    ],
+                  ),
               ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _handleFileSelection();
-                },
-                child: const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('File'),
-                ),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Cancel'),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -108,6 +164,47 @@ class _ChatPageState extends State<ChatPage> {
       maxWidth: 1440,
       source: ImageSource.gallery,
     );
+
+
+    if (result != null) {
+      _setAttachmentUploading(true);
+      final file = File(result.path);
+      final size = file.lengthSync();
+      final bytes = await result.readAsBytes();
+      final image = await decodeImageFromList(bytes);
+      final name = result.name;
+
+      try {
+        final reference = FirebaseStorage.instance.ref(name);
+        await reference.putFile(file);
+        final uri = await reference.getDownloadURL();
+
+        final message = types.PartialImage(
+          height: image.height.toDouble(),
+          name: name,
+          size: size,
+          uri: uri,
+          width: image.width.toDouble(),
+        );
+
+        FirebaseChatCore.instance.sendMessage(
+          message,
+          widget.room.id,
+        );
+        _setAttachmentUploading(false);
+      } finally {
+        _setAttachmentUploading(false);
+      }
+    }
+  }
+
+  void _handleCameraSelection() async {
+    final result = await ImagePicker().pickImage(
+      imageQuality: 70,
+      maxWidth: 1440,
+      source: ImageSource.camera,
+    );
+
 
     if (result != null) {
       _setAttachmentUploading(true);
@@ -176,10 +273,8 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  void _handlePreviewDataFetched(
-    types.TextMessage message,
-    types.PreviewData previewData,
-  ) {
+  void _handlePreviewDataFetched(types.TextMessage message,
+      types.PreviewData previewData,) {
     final updatedMessage = message.copyWith(previewData: previewData);
 
     FirebaseChatCore.instance.updateMessage(updatedMessage, widget.room.id);
@@ -199,29 +294,94 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) =>
+      Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: Color(0xFF0D1B2A),
           systemOverlayStyle: SystemUiOverlayStyle.light,
-          title: const Text('Chat'),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                onPressed:  () {
+                  Navigator.of(context).pop(
+                    MaterialPageRoute(
+                      builder: (context) => const RoomsPage(),
+                    ),
+                  );
+                },
+              ),
+              _buildAvatar(widget.room),
+              Text('  ${widget.room.name}',  style: TextStyle(color: Colors.white,),),
+
+            ],
+          ),
+          // leading: IconButton(
+          //   icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          //   onPressed:  () {
+          //     Navigator.of(context).pop(
+          //       MaterialPageRoute(
+          //         builder: (context) => const RoomsPage(),
+          //       ),
+          //     );
+          //   },
+          // ),
+
         ),
         body: StreamBuilder<types.Room>(
           initialData: widget.room,
           stream: FirebaseChatCore.instance.room(widget.room.id),
-          builder: (context, snapshot) => StreamBuilder<List<types.Message>>(
-            initialData: const [],
-            stream: FirebaseChatCore.instance.messages(snapshot.data!),
-            builder: (context, snapshot) => Chat(
-              isAttachmentUploading: _isAttachmentUploading,
-              messages: snapshot.data ?? [],
-              onAttachmentPressed: _handleAtachmentPressed,
-              onMessageTap: _handleMessageTap,
-              onPreviewDataFetched: _handlePreviewDataFetched,
-              onSendPressed: _handleSendPressed,
-              user: types.User(
-                id: FirebaseChatCore.instance.firebaseUser?.uid ?? '',
+          builder: (context, snapshot) =>
+              StreamBuilder<List<types.Message>>(
+                initialData: const [],
+                stream: FirebaseChatCore.instance.messages(snapshot.data!),
+                builder: (context, snapshot) =>
+                    Chat(
+                      isAttachmentUploading: _isAttachmentUploading,
+                      messages: snapshot.data ?? [],
+                      onAttachmentPressed: _handleAtachmentPressed,
+                      onMessageTap: _handleMessageTap,
+                      onPreviewDataFetched: _handlePreviewDataFetched,
+                      onSendPressed: _handleSendPressed,
+                      user: types.User(
+                        id: FirebaseChatCore.instance.firebaseUser?.uid ?? '',
+                      ),
+                    ),
               ),
-            ),
-          ),
         ),
       );
 }
+  Widget _buildAvatar(types.Room room) {
+    var color = Colors.transparent;
+
+    if (room.type == types.RoomType.direct) {
+      try {
+        final otherUser = room.users.firstWhere(
+          (u) => u.id != room.users.first!.id,
+        );
+
+        color = getUserAvatarNameColor(otherUser);
+      } catch (e) {
+        // Do nothing if other user is not found.
+      }
+    }
+
+    final hasImage = room.imageUrl != null;
+    final name = room.name ?? '';
+
+    return CircleAvatar(
+      backgroundColor: hasImage ? Colors.transparent : color,
+      backgroundImage: hasImage ? NetworkImage(room.imageUrl!) : null,
+      radius: 20,
+      child: !hasImage
+          ? Text(
+              name.isEmpty ? '' : name[0].toUpperCase(),
+              style: const TextStyle(color: Colors.white),
+            )
+          : null,
+    );
+  }
+
+

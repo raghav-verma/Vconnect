@@ -88,13 +88,15 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          // backgroundColor: Color(0xFF0D1B2A),
+          backgroundColor: Colors.grey,
           systemOverlayStyle: SystemUiOverlayStyle.light,
           title: const Text('REGISTER', style: TextStyle(color: Colors.white),),
-          leading: ,
+
         ),
         body: SingleChildScrollView(
           child: Container(
+            height: MediaQuery.of(context).size.height,
+            color: Colors.grey.shade300,
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [

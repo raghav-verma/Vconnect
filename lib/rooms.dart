@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_firebase_chat_core/flutter_firebase_chat_core.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'chat.dart';
 import 'login.dart';
@@ -94,8 +95,9 @@ class _RoomsPageState extends State<RoomsPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.deepPurple,
+      appBar: _user==null? null:AppBar(
+        centerTitle: true,
+        backgroundColor: Color(0xFF0A2338),
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
@@ -113,7 +115,7 @@ class _RoomsPageState extends State<RoomsPage> {
           icon: const Icon(Icons.logout, color: Colors.white),
           onPressed: _user == null ? null : logout,
         ),
-        title: const Text('Vconnect', style: TextStyle(color: Colors.white)),
+        title: const Text('VCONNECT', style: TextStyle(color: Colors.white)),
       ),
       body: _user == null
           ? Container(
@@ -166,7 +168,7 @@ class _RoomsPageState extends State<RoomsPage> {
               },
               child: const Text('Log In', style: TextStyle(fontSize: 20, color: Colors.white)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal, // Updated from primary to backgroundColor
+                backgroundColor: Colors.grey.withOpacity(0.1), // Updated from primary to backgroundColor
                 padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
@@ -183,17 +185,37 @@ class _RoomsPageState extends State<RoomsPage> {
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(child: Text('No rooms available. Start by creating one!'));
           }
+          Set<String> seenIds = Set<String>();
+          List<types.Room> uniqueRooms = [];
 
-          return ListView.builder(
-            itemCount: snapshot.data!.length,
+          // Filtering rooms based on ID
+          for (types.Room room in snapshot.data!) {
+            if (!seenIds.contains(room.id)) {
+              seenIds.add(room.id);
+              uniqueRooms.add(room);
+            }
+          }
+
+          final filteredList = uniqueRooms;
+
+          return ListView.separated(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            separatorBuilder: (context, index){
+              return SizedBox(height: 8,);
+            },
+            itemCount: filteredList.length,
             itemBuilder: (context, index) {
-              final room = snapshot.data![index];
+              final types.Room room  = filteredList[index];
 
               return GestureDetector(
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => ChatPage(room: room),
+                      builder: (context) => ChatPage(
+                          room: room,
+                          userName: room.users.first.firstName??'',
+                          imageUrl: room.users.first.imageUrl??'',
+                      ),
                     ),
                   );
                 },
@@ -202,7 +224,7 @@ class _RoomsPageState extends State<RoomsPage> {
                   margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: ListTile(
                     leading: _buildAvatar(room),
-                    title: Text(room.name ?? 'Unnamed room'),
+                    title: Text(room.name ?? 'Unnamed room',),
                     trailing: Icon(Icons.arrow_forward_ios, size: 16),
                   ),
                 ),
